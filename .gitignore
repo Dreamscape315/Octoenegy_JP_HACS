@@ -1,0 +1,19 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# 打包给自己传去 HA 用的临时压缩包/光盘镜像，不需要进版本库
+*.zip
+*.iso
+
+# scripts/dump_schema.py 生成的派生数据，体积较大且可随时重新生成
+scripts/oejp_full_schema.json
+
+# 本地开发用的 Home Assistant Core 实例（configuration.yaml/数据库/日志等），
+# 只在这台机器上用来快速迭代测试，不应该进仓库
+dev_config/
+
+# PyCharm 项目文件本身可以按需保留/忽略，这里默认保留 .idea 里非用户相关的配置
+.idea/workspace.xml
+

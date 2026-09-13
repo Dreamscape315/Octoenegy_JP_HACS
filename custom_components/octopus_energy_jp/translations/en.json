@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Octopus Energy Japan",
+        "description": "Enter the email and password you use to log in to octopusenergy.co.jp.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      },
+      "account": {
+        "title": "Select account",
+        "description": "This login has access to multiple accounts. Please select which one to set up.",
+        "data": {
+          "account_number": "Account number"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Incorrect email or password. Please check and try again.",
+      "cannot_connect": "Could not connect to the Octopus Energy Japan servers. Please try again later.",
+      "no_accounts": "No accounts were found for this login.",
+      "unknown": "An unknown error occurred. Please check the Home Assistant logs."
+    },
+    "abort": {
+      "already_configured": "This account has already been configured."
+    }
+  }
+}
+

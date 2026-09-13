@@ -1,0 +1,13 @@
+{
+  "domain": "octopus_energy_jp",
+  "name": "Octopus Energy Japan",
+  "codeowners": ["@Dreamscape315"],
+  "config_flow": true,
+  "documentation": "https://github.com/Dreamscape315/Octoenegy_JP_HACS",
+  "iot_class": "cloud_polling",
+  "integration_type": "service",
+  "issue_tracker": "https://github.com/Dreamscape315/Octoenegy_JP_HACS/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}
+
