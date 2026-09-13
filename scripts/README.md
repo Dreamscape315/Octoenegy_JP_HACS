@@ -12,6 +12,5 @@
   查半小时用电量），不需要安装完整的 Home Assistant 就能验证 API 调用链路
   是否正常。
 
-两个脚本都只依赖 `aiohttp`（`requirements_dev.txt` 里已经有），运行前记得
-`source .venv/bin/activate`。
+两个脚本都只依赖 `aiohttp`（可通过 `pip install aiohttp` 安装）。
 

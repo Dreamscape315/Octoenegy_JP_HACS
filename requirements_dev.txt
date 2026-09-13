@@ -1,7 +1,0 @@
-# 仅用于本地开发时让 IDE(PyCharm) 能正确解析 homeassistant / aiohttp / voluptuous 的类型提示。
-# 真正打包发布 HACS 组件时不需要这个文件，manifest.json 的 requirements
-# 只需要列出 homeassistant 核心不自带的额外依赖。
-homeassistant
-aiohttp
-voluptuous
-
