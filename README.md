@@ -55,7 +55,7 @@ An unofficial Home Assistant custom integration that brings electricity consumpt
 
 1. Open **HACS** in Home Assistant.
 2. Click the three dots in the top-right corner → **Custom repositories**.
-3. Enter Repository URL: `https://github.com/Dreamscape315/Octoenegy_JP_HACS` and set Category to **Integration**, then click **Add**.
+3. Enter Repository URL: `https://github.com/Dreamscape315/homeassistant-octopus-energy-jp` and set Category to **Integration**, then click **Add**.
 4. Search for **Octopus Energy Japan** in HACS and download it.
 5. Restart Home Assistant.
 
@@ -133,7 +133,7 @@ An unofficial Home Assistant custom integration that brings electricity consumpt
 
 1. 打开 Home Assistant 的 **HACS** 页面。
 2. 点击右上角菜单（三个点）→ **自定义存储库（Custom repositories）**。
-3. 输入存储库 URL：`https://github.com/Dreamscape315/Octoenegy_JP_HACS`，类别选择 **集成（Integration）**，点击添加。
+3. 输入存储库 URL：`https://github.com/Dreamscape315/homeassistant-octopus-energy-jp`，类别选择 **集成（Integration）**，点击添加。
 4. 在 HACS 列表中搜索 **Octopus Energy Japan** 并下载。
 5. 重启 Home Assistant。
 

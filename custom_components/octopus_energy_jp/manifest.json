@@ -3,10 +3,10 @@
   "name": "Octopus Energy Japan",
   "codeowners": ["@Dreamscape315"],
   "config_flow": true,
-  "documentation": "https://github.com/Dreamscape315/Octoenegy_JP_HACS",
+  "documentation": "https://github.com/Dreamscape315/homeassistant-octopus-energy-jp",
   "iot_class": "cloud_polling",
   "integration_type": "service",
-  "issue_tracker": "https://github.com/Dreamscape315/Octoenegy_JP_HACS/issues",
+  "issue_tracker": "https://github.com/Dreamscape315/homeassistant-octopus-energy-jp/issues",
   "requirements": [],
   "version": "0.1.0"
 }
