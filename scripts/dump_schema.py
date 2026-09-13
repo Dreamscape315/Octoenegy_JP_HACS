@@ -1,6 +1,6 @@
 """
-标准 GraphQL 完整 introspection query（含字段参数、返回类型、枚举值等），
-对 Octopus Energy Japan 的 GraphQL 端点做一次完整抓取，存到本地 json 方便离线分析。
+Standard full GraphQL introspection query (including fields, arguments, return types, enums, etc.)
+to fetch the live schema from Octopus Energy Japan and save it locally as JSON for offline analysis.
 """
 import json
 import urllib.request
@@ -8,7 +8,7 @@ import urllib.error
 
 GRAPHQL_URL = "https://api.oejp-kraken.energy/v1/graphql/"
 
-# 业界标准的完整 introspection query（graphql-js getIntrospectionQuery() 的等价版本）
+# Standard full introspection query (equivalent to graphql-js getIntrospectionQuery())
 FULL_INTROSPECTION_QUERY = """
 query IntrospectionQuery {
   __schema {

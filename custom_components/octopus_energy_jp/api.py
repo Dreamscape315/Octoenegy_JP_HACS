@@ -342,12 +342,12 @@ class OctopusJapanApiClient:
                 timeout=aiohttp.ClientTimeout(total=30),
             ) as resp:
                 if resp.status >= 500:
-                    raise OctopusJapanApiError(f"Octopus Energy 服务器错误 (HTTP {resp.status})")
+                    raise OctopusJapanApiError(f"Octopus Energy server error (HTTP {resp.status})")
                 if resp.status in (401, 403):
-                    raise OctopusJapanAuthError(f"认证失败 (HTTP {resp.status})")
+                    raise OctopusJapanAuthError(f"Authentication failed (HTTP {resp.status})")
                 payload = await resp.json()
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-            raise OctopusJapanApiError(f"连接 Octopus Energy 服务器失败: {err}") from err
+            raise OctopusJapanApiError(f"Failed to connect to Octopus Energy server: {err}") from err
 
         if "errors" in payload and payload["errors"]:
             err = payload["errors"][0]
@@ -356,11 +356,11 @@ class OctopusJapanApiClient:
             message = ext.get("errorDescription") or err.get("message") or "Unknown error"
 
             if code == "KT-CT-1138" or "credentials are correct" in message:
-                raise OctopusJapanAuthError(f"邮箱或密码不正确：{message}")
+                raise OctopusJapanAuthError(f"Invalid email or password: {message}")
             if code in ("KT-CT-1139", "KT-CT-1134", "KT-CT-1135") or "Authentication failed" in message:
-                raise OctopusJapanAuthError(f"登录失败：{message}")
+                raise OctopusJapanAuthError(f"Login failed: {message}")
             if "Authorization" in message and "header" in message:
-                raise OctopusJapanAuthError(f"缺少或无效的 Authorization header：{message}")
+                raise OctopusJapanAuthError(f"Missing or invalid Authorization header: {message}")
 
             raise OctopusJapanApiError(f"{code}: {message}")
 
@@ -382,7 +382,7 @@ class OctopusJapanApiClient:
         data = await self._graphql(TOKEN_MUTATION, variables, require_auth=False)
         result = data.get("obtainKrakenToken")
         if not result or not result.get("token"):
-            raise OctopusJapanAuthError("登录失败：未能获取到有效 token。")
+            raise OctopusJapanAuthError("Login failed: unable to obtain a valid token.")
 
         self._token = result["token"]
         self._token_expires_at = datetime.now(timezone.utc) + timedelta(

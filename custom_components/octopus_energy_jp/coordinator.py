@@ -298,11 +298,11 @@ class OctopusJapanDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         if consumption_stats:
             _LOGGER.debug(
-                "写入 %s 条 consumption 统计到 %s", len(consumption_stats), consumption_stat_id
+                "Writing %s consumption statistics to %s", len(consumption_stats), consumption_stat_id
             )
             async_add_external_statistics(self.hass, consumption_metadata, consumption_stats)
         if cost_stats:
-            _LOGGER.debug("写入 %s 条 cost 统计到 %s", len(cost_stats), cost_stat_id)
+            _LOGGER.debug("Writing %s cost statistics to %s", len(cost_stats), cost_stat_id)
             async_add_external_statistics(self.hass, cost_metadata, cost_stats)
 
         return consumption_sum, cost_sum
@@ -451,7 +451,7 @@ class OctopusJapanDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         else:
             metadata["has_mean"] = False
 
-        _LOGGER.debug("写入 %s 条统计到实体自身统计条目 %s", len(stats), entity_id)
+        _LOGGER.debug("Writing %s statistics to entity statistic %s", len(stats), entity_id)
         async_import_statistics(self.hass, metadata, stats)  # type: ignore[arg-type]
 
     async def _async_get_resume_point(

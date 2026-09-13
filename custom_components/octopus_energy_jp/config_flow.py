@@ -52,7 +52,7 @@ class OctopusEnergyJapanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             except OctopusJapanApiError:
                 errors["base"] = "cannot_connect"
             except Exception:  # noqa: BLE001
-                _LOGGER.exception("校验 Octopus Energy Japan 登录信息时发生未知错误")
+                _LOGGER.exception("Unexpected error while validating Octopus Energy Japan credentials")
                 errors["base"] = "unknown"
             else:
                 if not self._accounts:

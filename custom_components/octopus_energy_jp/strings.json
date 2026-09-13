@@ -3,29 +3,28 @@
     "step": {
       "user": {
         "title": "Octopus Energy Japan",
-        "description": "请输入你登录 octopusenergy.co.jp 官网使用的邮箱和密码。",
+        "description": "Enter the email and password you use to log in to octopusenergy.co.jp.",
         "data": {
-          "email": "邮箱",
-          "password": "密码"
+          "email": "Email",
+          "password": "Password"
         }
       },
       "account": {
-        "title": "选择账户",
-        "description": "该账号下有多个账户号，请选择要接入的账户。",
+        "title": "Select account",
+        "description": "This login has access to multiple accounts. Please select which one to set up.",
         "data": {
-          "account_number": "账户号"
+          "account_number": "Account number"
         }
       }
     },
     "error": {
-      "invalid_auth": "邮箱或密码不正确，请检查后重试。",
-      "cannot_connect": "无法连接到 Octopus Energy Japan 服务器，请稍后重试。",
-      "no_accounts": "该账号下没有找到任何电力账户。",
-      "unknown": "发生未知错误，请查看 Home Assistant 日志。"
+      "invalid_auth": "Incorrect email or password. Please check and try again.",
+      "cannot_connect": "Could not connect to the Octopus Energy Japan servers. Please try again later.",
+      "no_accounts": "No accounts were found for this login.",
+      "unknown": "An unknown error occurred. Please check the Home Assistant logs."
     },
     "abort": {
-      "already_configured": "该账户已经配置过。"
+      "already_configured": "This account has already been configured."
     }
   }
 }
-
