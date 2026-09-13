@@ -21,6 +21,7 @@ octopusenergy.co.jp).
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -333,13 +334,20 @@ class OctopusJapanApiClient:
             # not a bare token (verified, see caru-ini/octopus-bot).
             headers["Authorization"] = f"JWT {await self._async_ensure_token()}"
 
-        async with self._session.post(
-            GRAPHQL_URL,
-            json={"query": query, "variables": variables or {}},
-            headers=headers,
-            timeout=aiohttp.ClientTimeout(total=30),
-        ) as resp:
-            payload = await resp.json()
+        try:
+            async with self._session.post(
+                GRAPHQL_URL,
+                json={"query": query, "variables": variables or {}},
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as resp:
+                if resp.status >= 500:
+                    raise OctopusJapanApiError(f"Octopus Energy 服务器错误 (HTTP {resp.status})")
+                if resp.status in (401, 403):
+                    raise OctopusJapanAuthError(f"认证失败 (HTTP {resp.status})")
+                payload = await resp.json()
+        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
+            raise OctopusJapanApiError(f"连接 Octopus Energy 服务器失败: {err}") from err
 
         if "errors" in payload and payload["errors"]:
             err = payload["errors"][0]

@@ -18,15 +18,8 @@ services:
     volumes:
       - ./dev_config_docker:/config
       - ./custom_components/octopus_energy_jp:/config/custom_components/octopus_energy_jp
-      # 公司网络会对所有出站 HTTPS 做 SSL 检查（中间人拦截），容器默认的证书库
-      # 不认识公司自签的根证书，导致请求 Octopus/HA 官方接口都会报
-      # CERTIFICATE_VERIFY_FAILED。这里把 certifi 官方证书包 + 公司证书链拼接
-      # 好的 bundle 挂进去，用 REQUESTS_CA_BUNDLE 环境变量覆盖 HA 默认走的
-      # certifi.where()（见 homeassistant/util/ssl.py）。
-      - ./docker-ca/combined-ca-bundle.pem:/config/combined-ca-bundle.pem:ro
     environment:
       - TZ=Asia/Tokyo
-      - REQUESTS_CA_BUNDLE=/config/combined-ca-bundle.pem
     ports:
       - "8123:8123"
     restart: unless-stopped
