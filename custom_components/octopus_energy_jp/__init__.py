@@ -18,7 +18,7 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """从一个 config entry 建立 Octopus Energy Japan 集成实例。"""
+    """Set up an Octopus Energy Japan integration instance from a config entry."""
     session = async_get_clientsession(hass)
     client = OctopusJapanApiClient(
         session, entry.data[CONF_EMAIL], entry.data[CONF_PASSWORD]
@@ -35,7 +35,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """卸载 config entry。"""
+    """Unload a config entry."""
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)

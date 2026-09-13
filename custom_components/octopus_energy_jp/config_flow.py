@@ -25,7 +25,7 @@ STEP_USER_SCHEMA = vol.Schema(
 
 
 class OctopusEnergyJapanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """处理 Octopus Energy Japan 的配置流程。"""
+    """Handles the config flow for Octopus Energy Japan."""
 
     VERSION = 1
 
@@ -73,7 +73,8 @@ class OctopusEnergyJapanConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_account(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """当账号下挂了多个账户号时，让用户选择要接入哪一个。"""
+        """Let the user pick which account to set up when the login has
+        access to multiple accounts."""
         if user_input is not None:
             return await self._async_create_entry(user_input[CONF_ACCOUNT_NUMBER])
 

@@ -1,26 +1,23 @@
 """
 Octopus Energy Japan (Kraken) GraphQL API client.
 
-以下所有查询字段都经过对
-https://api.oejp-kraken.energy/v1/graphql/
-做完整 introspection 验证过，字段名/参数/返回类型均与真实线上 schema 一致。
+All query fields below have been verified against a full introspection of
+https://api.oejp-kraken.energy/v1/graphql/; field names, arguments and
+return types match the live schema.
 
-认证方式：
-    实测确认使用「邮箱 + 密码」（跟登录 octopusenergy.co.jp 官网用的是同一套账号密码）。
+Auth: email + password (the same credentials used to log in to
+octopusenergy.co.jp).
 
     obtainKrakenToken(input: {email: "...", password: "..."}) -> token
 
-    重要：虽然 introspection 显示 ObtainJSONWebTokenInput 只暴露
-    APIKey / organizationSecretKey / preSignedKey / refreshToken 几个字段
-    （Kraken 后台把 email/password 字段故意从 introspection 里隐藏了），
-    但实测直接传 email/password 是被服务端接受并处理的 —— 用假账号密码测试时，
-    返回的是业务错误 "Please make sure the credentials are correct."
-    (errorCode KT-CT-1138)，而不是 GraphQL 层面的 "字段不存在" 校验错误，
-    这证明该字段是真实存在且生效的。
-    （做法参考自开源项目 caru-ini/octopus-bot，其在生产环境中已验证可用。）
+    Important: introspection only exposes APIKey/organizationSecretKey/
+    preSignedKey/refreshToken on `ObtainJSONWebTokenInput` (Kraken
+    deliberately hides the email/password fields from introspection), but
+    passing email/password directly is accepted and processed by the
+    server (approach based on the open-source project caru-ini/octopus-bot).
 
-    之后所有请求都带 `Authorization: JWT <token>` header
-    （注意有 "JWT " 前缀，不是裸 token）。
+    All subsequent requests carry an `Authorization: JWT <token>` header
+    (note the "JWT " prefix -- not a bare token).
 """
 from __future__ import annotations
 
@@ -39,11 +36,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class OctopusJapanApiError(Exception):
-    """通用 API 错误。"""
+    """Generic API error."""
 
 
 class OctopusJapanAuthError(OctopusJapanApiError):
-    """邮箱/密码无效或 token 过期等认证类错误。"""
+    """Auth-related error: invalid email/password, expired token, etc."""
 
 
 TOKEN_MUTATION = """
@@ -72,9 +69,13 @@ query getViewerAccounts {
 
 ACCOUNT_QUERY = """
 query getAccount($accountNumber: String!) {
-  account(accountNumber: $accountNumber) {
+    account(accountNumber: $accountNumber) {
     number
+    status
+    # balance / overdueBalance are Int; the Japanese Kraken instance stores
+    # plain yen, no need to divide by 100 (see const.py for details).
     balance
+    overdueBalance
     properties {
       id
       address
@@ -82,14 +83,122 @@ query getAccount($accountNumber: String!) {
         id
         spin
         status
+        amperage
+        kva
+        contractedCapacity {
+          value
+          unit
+        }
         meters {
           serialNumber
+          capacity
+        }
+        # Agreement.product is a GraphQL union type; verified that Japan
+        # actually returns one of the three below, each with a different
+        # field structure:
+        #   - ElectricitySteppedProduct: tiered pricing (most common, the
+        #     "juryo-dento" style)
+        #   - ElectricitySingleStepProduct: flat rate (no tiers)
+        #   - ElectricityFitProduct: solar feed-in tariff (FIT), only has a
+        #     sell price, no standard standing charge/tiered rates/fuel
+        #     cost adjustment/renewable energy levy
+        agreements {
+          validFrom
+          validTo
+          product {
+            __typename
+            ... on ElectricitySteppedProduct {
+              code
+              displayName
+              standingChargePricePerDay
+              standingChargeUnitType
+              consumptionCharges {
+                stepStart
+                stepEnd
+                pricePerUnitIncTax
+                band
+              }
+              fuelCostAdjustment {
+                pricePerUnitIncTax
+                validFrom
+                validTo
+              }
+              renewableEnergyLevy {
+                pricePerUnitIncTax
+                validFrom
+                validTo
+              }
+            }
+            ... on ElectricitySingleStepProduct {
+              code
+              displayName
+              standingChargePricePerDay
+              standingChargeUnitType
+              consumptionCharges {
+                pricePerUnitIncTax
+                band
+              }
+              fuelCostAdjustment {
+                pricePerUnitIncTax
+                validFrom
+                validTo
+              }
+              renewableEnergyLevy {
+                pricePerUnitIncTax
+                validFrom
+                validTo
+              }
+            }
+            ... on ElectricityFitProduct {
+              code
+              displayName
+            }
+          }
         }
       }
     }
   }
 }
 """
+
+# Account.bills is standard GraphQL Relay pagination (edges/node); verified
+# that the real bill node type is PeriodBasedDocumentType (not
+# StatementType/InvoiceType seen in introspection, which are likely used by
+# other regions or are legacy types).
+BILLS_QUERY = """
+query getBills($accountNumber: String!, $first: Int!) {
+  account(accountNumber: $accountNumber) {
+    bills(first: $first) {
+      totalCount
+      edges {
+        node {
+          __typename
+          ... on PeriodBasedDocumentType {
+            id
+            billType
+            fromDate
+            toDate
+            issuedDate
+            openingBalance
+            closingBalance
+            totalCharges {
+              grossTotal
+              netTotal
+              taxTotal
+            }
+            totalCredits {
+              grossTotal
+              netTotal
+              taxTotal
+            }
+          }
+        }
+      }
+    }
+  }
+}
+"""
+
 
 ELECTRICITY_HALF_HOURLY_QUERY = """
 query getElectricityUsage(
@@ -115,14 +224,94 @@ query getElectricityUsage(
 
 
 def _dt_to_graphql(dt: datetime) -> str:
-    """转成 Kraken GraphQL DateTime 标量接受的 ISO8601 字符串。"""
+    """Convert to the ISO8601 string format accepted by the Kraken GraphQL
+    DateTime scalar."""
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.isoformat()
 
 
+def _parse_graphql_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def _to_float(value: Any) -> float | None:
+    """Decimal scalars come back as strings in GraphQL JSON (e.g. "19.27");
+    convert to float consistently."""
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _normalize_rate(rate: dict[str, Any] | None) -> dict[str, Any] | None:
+    """FuelCostAdjustmentRate and RenewableEnergyLevyRate have identical
+    fields, so flatten them the same way."""
+    if not rate:
+        return None
+    return {
+        "price_per_unit_inc_tax": _to_float(rate.get("pricePerUnitIncTax")),
+        "valid_from": rate.get("validFrom"),
+        "valid_to": rate.get("validTo"),
+    }
+
+
+def _normalize_electricity_product(product: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Flatten the `Agreement.product` union type (one of three tariff
+    kinds) into a single structure, so callers don't need to care which
+    subtype it is (tiered / flat rate / solar feed-in).
+    """
+    if not product:
+        return None
+    return {
+        "kind": product.get("__typename"),
+        "code": product.get("code"),
+        "display_name": product.get("displayName"),
+        "standing_charge_price_per_day": _to_float(product.get("standingChargePricePerDay")),
+        "standing_charge_unit_type": product.get("standingChargeUnitType"),
+        "consumption_tiers": [
+            {
+                "step_start": tier.get("stepStart"),
+                "step_end": tier.get("stepEnd"),
+                "price_per_unit_inc_tax": _to_float(tier.get("pricePerUnitIncTax")),
+                "band": tier.get("band"),
+            }
+            for tier in (product.get("consumptionCharges") or [])
+        ],
+        "fuel_cost_adjustment": _normalize_rate(product.get("fuelCostAdjustment")),
+        "renewable_energy_levy": _normalize_rate(product.get("renewableEnergyLevy")),
+    }
+
+
+def _pick_current_agreement(agreements: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Pick the currently active entry from a list of Agreements:
+    validFrom <= now and (validTo is empty or validTo > now).
+    This should never fail to find one in practice, but falls back to
+    "the entry with no validTo" and then "the last entry in the list".
+    """
+    if not agreements:
+        return None
+    now = datetime.now(timezone.utc)
+
+    for agreement in agreements:
+        valid_from = _parse_graphql_datetime(agreement.get("validFrom"))
+        valid_to = _parse_graphql_datetime(agreement.get("validTo"))
+        if valid_from and valid_from <= now and (valid_to is None or valid_to > now):
+            return agreement
+
+    for agreement in agreements:
+        if agreement.get("validTo") is None:
+            return agreement
+
+    return agreements[-1]
+
+
 class OctopusJapanApiClient:
-    """封装对 Octopus Energy Japan Kraken GraphQL API 的调用。"""
+    """Wraps calls to the Octopus Energy Japan Kraken GraphQL API."""
 
     def __init__(self, session: aiohttp.ClientSession, email: str, password: str) -> None:
         self._session = session
@@ -140,8 +329,8 @@ class OctopusJapanApiClient:
     ) -> dict[str, Any]:
         headers = {"Content-Type": "application/json"}
         if require_auth:
-            # 注意：Kraken 要求的 Authorization header 格式是 "JWT <token>"，
-            # 不是裸 token（实测确认，参考 caru-ini/octopus-bot 的实现）。
+            # Kraken requires the Authorization header format "JWT <token>",
+            # not a bare token (verified, see caru-ini/octopus-bot).
             headers["Authorization"] = f"JWT {await self._async_ensure_token()}"
 
         async with self._session.post(
@@ -193,19 +382,66 @@ class OctopusJapanApiClient:
         )
 
     async def async_validate(self) -> None:
-        """在 config_flow 中用来校验用户填的邮箱/密码是否有效。"""
+        """Used by config_flow to validate the user-entered email/password."""
         await self._async_login()
 
     async def async_get_accounts(self) -> list[dict[str, Any]]:
-        """获取当前登录账号下的所有账户号（一般只有一个）。"""
+        """Get all account numbers under the logged-in login (usually just one)."""
         data = await self._graphql(VIEWER_ACCOUNTS_QUERY)
         viewer = data.get("viewer") or {}
         return viewer.get("accounts") or []
 
     async def async_get_account(self, account_number: str) -> dict[str, Any]:
-        """获取账户基本信息 + 名下所有物业(property)/电表(supply point)。"""
+        """Get account basics plus all properties/supply points.
+
+        Each electricitySupplyPoint gets two extra fields attached for
+        convenience:
+        - `current_tariff`: the currently active entry picked from
+          `agreements`, with `product` (a union type) flattened into a
+          single structure (see `_normalize_electricity_product`).
+        - `current_agreement_valid_from`/`current_agreement_valid_to`:
+          the validity window of the current agreement.
+        """
         data = await self._graphql(ACCOUNT_QUERY, {"accountNumber": account_number})
-        return data.get("account") or {}
+        account = data.get("account") or {}
+        for prop in account.get("properties") or []:
+            for supply_point in prop.get("electricitySupplyPoints") or []:
+                agreement = _pick_current_agreement(supply_point.get("agreements") or [])
+                supply_point["current_tariff"] = (
+                    _normalize_electricity_product(agreement.get("product"))
+                    if agreement
+                    else None
+                )
+                supply_point["current_agreement_valid_from"] = (
+                    agreement.get("validFrom") if agreement else None
+                )
+                supply_point["current_agreement_valid_to"] = (
+                    agreement.get("validTo") if agreement else None
+                )
+        return account
+
+    async def async_get_bills(
+        self, account_number: str, first: int = 5
+    ) -> list[dict[str, Any]]:
+        """Get the most recent bills (invoices/statements), newest first
+        (Kraken's default order).
+
+        Verified the real node type is `PeriodBasedDocumentType`; fields
+        for other types (e.g. CollectiveBillType) are not requested here
+        and get skipped.
+        """
+        data = await self._graphql(
+            BILLS_QUERY, {"accountNumber": account_number, "first": first}
+        )
+        account = data.get("account") or {}
+        bills_connection = account.get("bills") or {}
+        edges = bills_connection.get("edges") or []
+        bills: list[dict[str, Any]] = []
+        for edge in edges:
+            node = edge.get("node") or {}
+            if node.get("__typename") == "PeriodBasedDocumentType":
+                bills.append(node)
+        return bills
 
     async def async_get_electricity_half_hourly(
         self,
@@ -213,11 +449,13 @@ class OctopusJapanApiClient:
         from_dt: datetime,
         to_dt: datetime,
     ) -> dict[str, list[dict[str, Any]]]:
-        """获取指定时间范围内每个电表(spin)各自的半小时用电量读数（kWh + 预估费用）。
+        """Get half-hourly usage readings (kWh + estimated cost) for each
+        electricity meter (spin) within the given time range.
 
-        返回 {spin: [reading, ...]}，按 spin 分组是为了给 Energy Dashboard
-        的长期统计（每个电表一条 statistic_id）使用；如果只是想要一个整体的
-        "最新读数"展示，可以把所有 spin 的读数拼在一起再取最后一条。
+        Returns {spin: [reading, ...]}; grouping by spin is so each meter
+        can have its own statistic_id for the Energy Dashboard's long-term
+        statistics. If you just want an overall "latest reading", combine
+        all spins' readings and take the last one.
         """
         data = await self._graphql(
             ELECTRICITY_HALF_HOURLY_QUERY,

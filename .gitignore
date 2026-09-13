@@ -13,6 +13,8 @@ scripts/oejp_full_schema.json
 # 本地开发用的 Home Assistant Core 实例（configuration.yaml/数据库/日志等），
 # 只在这台机器上用来快速迭代测试，不应该进仓库
 dev_config/
+dev_config_docker/
+docker-ca/
 
 # PyCharm 项目文件本身可以按需保留/忽略，这里默认保留 .idea 里非用户相关的配置
 .idea/workspace.xml

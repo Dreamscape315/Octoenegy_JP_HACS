@@ -7,20 +7,47 @@
 <a name="english"></a>
 ## English
 
-An unofficial Home Assistant custom integration that brings electricity consumption and cost data from **Octopus Energy Japan** into Home Assistant.
+An unofficial Home Assistant custom integration that brings electricity consumption, cost data, tariff information, and billing details from **Octopus Energy Japan** into Home Assistant.
 
 ### Features
 
 - **Direct Web Login**: Sign in using your `octopusenergy.co.jp` account email and password via the UI config flow—no API key required.
 - **Multi-Account Support**: Easily select your target account if multiple accounts are associated with your login.
-- **Home Assistant Energy Dashboard Integration**:
+- **Energy Dashboard Ready**:
   - Automatically aggregates half-hourly electricity usage and estimated costs into top-of-the-hour external statistics (`recorder external statistics`).
-  - Seamlessly add grid consumption (`..._consumption`) and cost tracking (`..._cost`) in **Settings → Dashboards → Energy**.
-  - Automatically backfills historical data on initial setup (default: 30 days).
-- **Real-Time Sensor Entities**:
-  - **Latest Half-Hourly Consumption** (`Latest Half-Hourly Consumption`, kWh)
-  - **Latest Half-Hourly Cost Estimate** (`Latest Half-Hourly Cost Estimate`, JPY)
-  - **Account Balance** (`Account Balance`, JPY)
+  - Supports 2-year chunked historical data backfill on first run without data truncation.
+  - Seamlessly add grid consumption (`Total Consumption`) and cost tracking (`Total Cost`) under **Settings → Dashboards → Energy**.
+- **Comprehensive Sensors (20 Entities)**:
+  - **Usage & Cost Tracking**: Half-hourly, today, this week, this month, and total cumulative consumption and cost estimates.
+  - **Financial & Billing**: Account balance, overdue balance, and latest bill amount (with billing period and statement dates).
+  - **Tariff & Contract Diagnostics**: Contracted capacity (A/kVA), active tariff plan (with tiered pricing breakdown), daily standing charge, fuel cost adjustment, and renewable energy levy.
+- **Device Information**:
+  - Automatically maps meter serial number, tariff plan name & code, and contracted capacity directly into the Home Assistant device card.
+
+### Sensors Overview
+
+| Sensor | Unit | Type / Class | Description |
+|---|---|---|---|
+| **Latest Half-Hourly Consumption** | kWh | Energy | Most recent 30-minute electricity usage |
+| **Latest Half-Hourly Cost Estimate** | JPY | Monetary | Most recent 30-minute estimated cost |
+| **Today's Consumption** | kWh | Energy | Cumulative usage for today (local calendar day) |
+| **Today's Cost Estimate** | JPY | Monetary | Estimated cost for today |
+| **This Week's Consumption** | kWh | Energy | Cumulative usage for this week (from Monday 00:00) |
+| **This Week's Cost Estimate** | JPY | Monetary | Estimated cost for this week |
+| **This Month's Consumption** | kWh | Energy | Cumulative usage for this month (from 1st 00:00) |
+| **This Month's Cost Estimate** | JPY | Monetary | Estimated cost for this month |
+| **Total Consumption** | kWh | Energy (Total Increasing) | Overall tracked usage (recommended for Energy Dashboard) |
+| **Total Cost** | JPY | Monetary | Overall tracked cost (recommended for Energy Dashboard) |
+| **Account Balance** | JPY | Monetary | Current account balance |
+| **Overdue Balance** | JPY | Monetary | Overdue amount |
+| **Latest Bill Amount** | JPY | Monetary | Most recent invoice amount with date/period attributes |
+| **Account Status** | - | Diagnostic (Enum) | Account status (`active`, `pending`, etc.) |
+| **Supply Status** | - | Diagnostic (Enum) | Supply point status (`on_supply`, etc.) |
+| **Contracted Capacity** | A / kVA | Diagnostic | Contract capacity (e.g. 30A, 40A) with meter max rating |
+| **Tariff Plan** | - | Diagnostic | Current tariff plan with tiered pricing band attributes |
+| **Standing Charge** | JPY | Diagnostic | Daily base charge (JPY/day) |
+| **Fuel Cost Adjustment** | JPY | Diagnostic | Fuel cost adjustment unit price (JPY/kWh) |
+| **Renewable Energy Levy** | JPY | Diagnostic | Renewable energy levy unit price (JPY/kWh) |
 
 ### Installation
 
@@ -45,8 +72,8 @@ An unofficial Home Assistant custom integration that brings electricity consumpt
 3. Enter your Octopus Energy Japan account **email and password**.
 4. Set up the **Energy Dashboard**:
    - Go to **Settings → Dashboards → Energy**.
-   - Under **Electricity grid**, click **Add consumption** and select `Octopus Energy Japan <SPIN> Consumption`.
-   - Under **Track costs**, choose **Use an entity tracking the total costs** and select `Octopus Energy Japan <SPIN> Cost`.
+   - Under **Electricity grid**, click **Add consumption** and select `Total Consumption` (or `Octopus Energy Japan <SPIN> Consumption`).
+   - Under **Track costs**, select `Total Cost` (or `Octopus Energy Japan <SPIN> Cost`).
 
 ### Acknowledgements
 
@@ -58,7 +85,7 @@ An unofficial Home Assistant custom integration that brings electricity consumpt
 <a name="中文说明"></a>
 ## 中文说明
 
-这是一个非官方的 Home Assistant 自定义集成，用于将 **Octopus Energy Japan** 的用电数据与费用无缝接入 Home Assistant。
+这是一个非官方的 Home Assistant 自定义集成，用于将 **Octopus Energy Japan** 的用电数据、费用估算、资费详情与账单信息无缝接入 Home Assistant。
 
 ### 功能特性
 
@@ -66,12 +93,39 @@ An unofficial Home Assistant custom integration that brings electricity consumpt
 - **支持多账户管理**：如果一个账号下拥有多个电力账户，配置时支持交互式选择。
 - **深度适配 Energy Dashboard（能源仪表盘）**：
   - 自动将半小时用电量及预估费用按整点聚合后写入 Home Assistant 外部长期统计（`recorder external statistics`）。
-  - 可直接在 **设置 → 仪表盘 → 能源** 中添加电网消耗（`..._consumption`）和跟踪成本（`..._cost`）。
-  - 首次配置自动回填历史用电数据（默认回填 30 天）。
-- **实时传感器实体**：
-  - **最新半小时用电量**（`Latest Half-Hourly Consumption`，单位 kWh）
-  - **最新半小时预估费用**（`Latest Half-Hourly Cost Estimate`，单位 JPY）
-  - **账户余额**（`Account Balance`，单位 JPY）
+  - 支持首发 2 年（730天）分段历史数据回填，避免数据截断。
+  - 可直接在 **设置 → 仪表盘 → 能源** 中绑定电网消耗与跟踪成本。
+- **丰富的传感器体系（共 20 个实体）**：
+  - **周期用电与费用**：最近半小时、今日、本周、本月及自接入以来的总累计用电量与预估费用。
+  - **财务与账单**：账户余额、逾期未缴金额、最新账单金额（含账单周期与开票日属性）。
+  - **资费与合约诊断**：契约容量（A/kVA）、当前资费方案（含各阶梯电价明细）、基本料金、燃料费调整单价、再エネ賦課金。
+- **设备详情整合**：
+  - 在设备卡片中直接显示电表计器番号（`serial_number`）、资费方案名（`model`）、代码（`model_id`）及契约容量（`hw_version`）。
+
+### 传感器列表一览
+
+| 传感器名称 | 单位 | 类别 / Class | 说明 |
+|---|---|---|---|
+| **Latest Half-Hourly Consumption** | kWh | Energy | 最近一条已出结果的半小时用电量 |
+| **Latest Half-Hourly Cost Estimate** | JPY | Monetary | 对应的预估电费 |
+| **Today's Consumption** | kWh | Energy | 今日累计用电量（本地日历日 0 点起） |
+| **Today's Cost Estimate** | JPY | Monetary | 今日累计预估电费 |
+| **This Week's Consumption** | kWh | Energy | 本周累计用电量（周一 0 点起） |
+| **This Week's Cost Estimate** | JPY | Monetary | 本周累计预估电费 |
+| **This Month's Consumption** | kWh | Energy | 本月累计用电量（当月 1 号 0 点起） |
+| **This Month's Cost Estimate** | JPY | Monetary | 本月累计预估电费 |
+| **Total Consumption** | kWh | Energy (Total Increasing) | 追踪总累计用电量（**推荐作为能源仪表盘电网消耗来源**） |
+| **Total Cost** | JPY | Monetary | 追踪总累计费用（**推荐作为能源仪表盘追踪成本来源**） |
+| **Account Balance** | JPY | Monetary | 账户余额（整円） |
+| **Overdue Balance** | JPY | Monetary | 逾期未缴金额 |
+| **Latest Bill Amount** | JPY | Monetary | 最近一张账单应付总额（含开票日与账单周期属性） |
+| **Account Status** | - | Diagnostic (Enum) | 账户状态（`active`、`pending` 等） |
+| **Supply Status** | - | Diagnostic (Enum) | 供电状态（`on_supply` 等） |
+| **Contracted Capacity** | A / kVA | Diagnostic | 契约容量（如 30A/40A，含电表额定容量） |
+| **Tariff Plan** | - | Diagnostic | 当前生效资费方案名称（属性附带各阶梯电价明细） |
+| **Standing Charge** | JPY | Diagnostic | 基本料金（円/日） |
+| **Fuel Cost Adjustment** | JPY | Diagnostic | 燃料费调整额单价（円/kWh） |
+| **Renewable Energy Levy** | JPY | Diagnostic | 再エネ賦課金单价（円/kWh） |
 
 ### 安装方法
 
@@ -94,8 +148,8 @@ An unofficial Home Assistant custom integration that brings electricity consumpt
 2. 搜索 **Octopus Energy Japan**。
 3. 输入你的 Octopus Energy Japan 官网**邮箱和密码**完成添加。
 4. 进入 **设置 → 仪表盘 → 能源**：
-   - 在 **电网消耗** 中点击 **添加消耗**，选择 `Octopus Energy Japan <SPIN> Consumption`；
-   - 在 **追踪成本** 中选择 **使用条目跟踪成本**，选择 `Octopus Energy Japan <SPIN> Cost`。
+   - 在 **电网消耗** 中点击 **添加消耗**，选择 `Total Consumption` 实体（或底层的 `Octopus Energy Japan <SPIN> Consumption`）；
+   - 在 **追踪成本** 中选择 **使用条目跟踪成本**，选择 `Total Cost` 实体（或 `Octopus Energy Japan <SPIN> Cost`）。
 
 ### 鸣谢与参考
 
